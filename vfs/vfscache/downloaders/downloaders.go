@@ -82,10 +82,11 @@ type waiter struct {
 // downloader represents a running download for part of a file.
 type downloader struct {
 	// Write once
-	dls  *Downloaders   // parent structure
-	quit chan struct{}  // close to quit the downloader
-	wg   sync.WaitGroup // to keep track of downloader goroutine
-	kick chan struct{}  // kick the downloader when needed
+	dls   *Downloaders   // parent structure
+	quit  chan struct{}  // close to quit the downloader
+	wg    sync.WaitGroup // to keep track of downloader goroutine
+	kick  chan struct{}  // kick the downloader when needed
+	timer time.Time
 
 	// Read write
 	mu        sync.Mutex
@@ -177,6 +178,7 @@ func (dls *Downloaders) _newDownloader(r ranges.Range) (dl *downloader, err erro
 		start:     r.Pos,
 		offset:    r.Pos,
 		maxOffset: r.End(),
+		timer:     time.Now(),
 	}
 
 	err = dl.open(dl.offset)
@@ -496,7 +498,7 @@ loop:
 	dl.offset += int64(n)
 
 	// Kill this downloader if skipped too many bytes
-	if !dl.stop && dl.skipped > maxSkipBytes {
+	if !dl.stop && ((dl.skipped > maxSkipBytes) || (time.Now().Sub(dl.timer) > 300*time.Second)) {
 		fs.Debugf(dl.dls.src, "vfs cache: stopping download thread as it has skipped %d bytes", dl.skipped)
 		dl._stop()
 	}

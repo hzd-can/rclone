@@ -110,6 +110,7 @@ func NewTransportCustom(ctx context.Context, customize func(*http.Transport)) ht
 	t.MaxIdleConns = 2 * t.MaxIdleConnsPerHost
 	t.TLSHandshakeTimeout = ci.ConnectTimeout
 	t.ResponseHeaderTimeout = ci.Timeout
+	t.IdleConnTimeout = 5 * time.Second
 
 	// TLS Config
 	t.TLSClientConfig = &tls.Config{
